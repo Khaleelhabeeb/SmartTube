@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.text.Editable;
@@ -14,6 +15,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnFocusChangeListener;
 import android.view.ViewGroup;
@@ -356,7 +358,20 @@ public class SearchSupportFragment extends Fragment {
             }
 
             if (mIsKeyboardAutoShowEnabled && focused) {
-                Helpers.showKeyboardAlt(v.getContext(), v);
+                // MOD: some input stacks (notably on older/non-certified Android TV boxes)
+                // only pop the soft keyboard in response to a real touch event on the edit
+                // field; a plain focus change + showSoftInput() is silently ignored there.
+                // Restore the synthetic tap that stock Leanback's SearchBar.showNativeKeyboard()
+                // used to do, since this listener fully replaced that original behavior.
+                mHandler.post(() -> {
+                    v.requestFocusFromTouch();
+                    long time = SystemClock.uptimeMillis();
+                    v.dispatchTouchEvent(MotionEvent.obtain(
+                            time, time, MotionEvent.ACTION_DOWN, v.getWidth(), v.getHeight(), 0));
+                    v.dispatchTouchEvent(MotionEvent.obtain(
+                            time, time, MotionEvent.ACTION_UP, v.getWidth(), v.getHeight(), 0));
+                    Helpers.showKeyboardAlt(v.getContext(), v);
+                });
             }
         });
         mSearchTextEditor.addTextChangedListener(new TextWatcher() {
