@@ -1,5 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.common.utils;
 
+import android.os.Build.VERSION;
+
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 
@@ -44,6 +46,30 @@ public class ClickbaitRemover {
             return video.getCardImageUrl();
         }
 
+        // Android 4.4 and below: search may return signed, webp/avif or oversized thumbnails that fail to load.
+        // Use the plain medium-size jpg that is always available and decodable.
+        if (VERSION.SDK_INT <= 19 && video.videoId != null) {
+            return getLegacyThumbnail(video.videoId, thumbQuality);
+        }
+
         return updateThumbnail(video.getCardImageUrl(), thumbQuality);
+    }
+
+    private static String getLegacyThumbnail(String videoId, int thumbQuality) {
+        String quality = "hqdefault";
+
+        switch (thumbQuality) {
+            case THUMB_QUALITY_START:
+                quality = "hq1";
+                break;
+            case THUMB_QUALITY_MIDDLE:
+                quality = "hq2";
+                break;
+            case THUMB_QUALITY_END:
+                quality = "hq3";
+                break;
+        }
+
+        return String.format("https://i.ytimg.com/vi/%s/%s.jpg", videoId, quality);
     }
 }
