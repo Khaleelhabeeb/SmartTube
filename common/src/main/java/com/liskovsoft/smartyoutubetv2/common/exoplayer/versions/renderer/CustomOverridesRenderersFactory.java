@@ -1,6 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.common.exoplayer.versions.renderer;
 
 import android.content.Context;
+import android.os.Build.VERSION;
 import android.os.Handler;
 import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.Renderer;
@@ -13,6 +14,7 @@ import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.mediacodec.MediaCodecSelector;
 import com.google.android.exoplayer2.util.AmazonQuirks;
 import com.google.android.exoplayer2.video.VideoRendererEventListener;
+import com.liskovsoft.smartyoutubetv2.common.exoplayer.other.StereoDownmixAudioProcessor;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.versions.selector.BlacklistMediaCodecSelector;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
@@ -50,6 +52,19 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase 
 
         AmazonQuirks.disableSnappingToVsync(mPlayerTweaksData.isSnappingToVsyncDisabled());
         AmazonQuirks.skipProfileLevelCheck(mPlayerTweaksData.isProfileLevelCheckSkipped());
+    }
+
+    /**
+     * Android 4.4 and below: the platform downmix of 5.1 audio drops the center (dialogue) channel,
+     * so voices sound too quiet compared to background sounds. Downmix to stereo ourselves.
+     */
+    @Override
+    protected AudioProcessor[] buildAudioProcessors() {
+        if (VERSION.SDK_INT <= 19) {
+            return new AudioProcessor[] {new StereoDownmixAudioProcessor()};
+        }
+
+        return super.buildAudioProcessors();
     }
 
     // 2.12, 2.13
